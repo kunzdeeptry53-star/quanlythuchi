@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sổ Quản Lý Thu Chi - Thủ Kiệm</title>
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #e0e7ff;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --background: #f1f5f9;
+            --surface: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            --transition: all 0.2s ease-in-out;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text-main);
+            padding: 24px 16px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            background: var(--surface);
+            padding: 20px 24px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+        }
+
+        .brand h1 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .brand p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Thống kê dạng Thẻ (Cards) */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--surface);
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+        }
+
+        .card.balance::before { background-color: var(--primary); }
+        .card.income::before { background-color: var(--success); }
+        .card.expense::before { background-color: var(--danger); }
+
+        .card-info h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .card-info .value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .card.balance .value { color: var(--primary); }
+        .card.income .value { color: var(--success); }
+        .card.expense .value { color: var(--danger); }
+
+        .card-icon {
+            font-size: 2rem;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card.balance .card-icon { background: var(--primary-light); color: var(--primary); }
+        .card.income .card-icon { background: var(--success-light); color: var(--success); }
+        .card.expense .card-icon { background: var(--danger-light); color: var(--danger); }
+
+        /* Bố cục chính */
+        .main-content {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 850px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            header {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+        }
+
+        .panel {
+            background: var(--surface);
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-main);
+        }
+
+        .panel-title ion-icon {
+            color: var(--primary);
+            font-size: 1.3rem;
+        }
+
+        /* Form nhập liệu */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-main);
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            color: var(--text-main);
+            transition: var(--transition);
+            background-color: #f8fafc;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: var(--surface);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover { background: #4338ca; }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 8px 14px;
+            font-size: 0.85rem;
+        }
+
+        .btn-outline:hover {
+            background: #f8fafc;
+            color: var(--text-main);
+            border-color: var(--text-muted);
+        }
+
+        /* Bộ lọc Tìm kiếm */
+        .table-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 9px 12px 9px 36px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+        }
+
+        .search-box ion-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        /* Bảng hiển thị dữ liệu */
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: #f8fafc; }
+
+        .badge {
+            display: inline-flex;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-income { background: var(--success-light); color: var(--success); }
+        .badge-expense { background: var(--danger-light); color: var(--danger); }
+
+        .cell-amount {
+            font-weight: 700;
+            text-align: right;
+        }
+        .cell-amount.income { color: var(--success); }
+        .cell-amount.expense { color: var(--danger); }
+        th.cell-amount { text-align: right; }
+
+        .btn-delete {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            padding: 4px;
+            border-radius: 4px;
+            transition: var(--transition);
+        }
+
+        .btn-delete:hover {
+            color: var(--danger);
+            background-color: var(--danger-light);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state ion-icon {
+            font-size: 3rem;
+            margin-bottom: 8px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="brand">
+            <h1>SỔ THU CHI THỦ QUỸ</h1>
+            <p>Hệ thống quản lý tài chính nhóm thông minh & trực quan</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline" onclick="exportToExcel()">
+                <ion-icon name="download-outline"></ion-icon> Xuất Excel
+            </button>
+            <button class="btn btn-outline" onclick="clearAllData()">
+                <ion-icon name="trash-outline"></ion-icon> Xóa tất cả
+            </button>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <div class="card balance">
+            <div class="card-info">
+                <h3>Số dư hiện tại</h3>
+                <div class="value" id="total-balance">0 ₫</div>
+            </div>
+            <div class="card-icon"><ion-icon name="wallet-outline"></ion-icon></div>
+        </div>
+        <div class="card income">
+            <div class="card-info">
+                <h3>Tổng các khoản thu</h3>
+                <div class="value" id="total-income">0 ₫</div>
+            </div>
+            <div class="card-icon"><ion-icon name="trending-up-outline"></ion-icon></div>
+        </div>
+        <div class="card expense">
+            <div class="card-info">
+                <h3>Tổng các khoản chi</h3>
+                <div class="value" id="total-expense">0 ₫</div>
+            </div>
+            <div class="card-icon"><ion-icon name="trending-down-outline"></ion-icon></div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="panel">
+            <div class="panel-title">
+                <ion-icon name="add-circle-outline"></ion-icon> Thêm Giao Dịch Mới
+            </div>
+            <form id="transaction-form">
+                <div class="form-group">
+                    <label for="type">Phân loại</label>
+                    <select id="type" required>
+                        <option value="income">Thu vào (+)</option>
+                        <option value="expense">Chi ra (-)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="amount">Số tiền (VND)</label>
+                    <input type="number" id="amount" placeholder="Nhập số tiền..." required min="1">
+                </div>
+                <div class="form-group">
+                    <label for="description">Nội dung chi tiết</label>
+                    <input type="text" id="description" placeholder="Ví dụ: Thu tiền quỹ lớp, Mua văn phòng phẩm..." required>
+                </div>
+                <div class="form-group">
+                    <label for="date">Ngày thực hiện</label>
+                    <input type="date" id="date" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <ion-icon name="checkmark-circle-outline"></ion-icon> Ghi Sổ Giao Dịch
+                </button>
+            </form>
+        </div>
+
+        <div class="panel">
+            <div class="table-toolbar">
+                <div class="panel-title" style="margin-bottom:0;">
+                    <ion-icon name="list-outline"></ion-icon> Nhật Ký Thu Chi
+                </div>
+                <div class="search-box">
+                    <ion-icon name="search-outline"></ion-icon>
+                    <input type="text" id="search-input" oninput="updateUI()" placeholder="Tìm kiếm nội dung, ngày...">
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 110px;">Ngày</th>
+                            <th style="width: 90px;">Loại</th>
+                            <th>Nội dung</th>
+                            <th class="cell-amount" style="width: 140px;">Số tiền</th>
+                            <th style="width: 50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="transaction-list"></tbody>
+                </table>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <ion-icon name="receipt-outline"></ion-icon>
+                    <p>Chưa có giao dịch hoặc không tìm thấy kết quả phù hợp.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let transactions = JSON.parse(localStorage.getItem('treasurer_cache_v2')) || [];
+
+    const form = document.getElementById('transaction-form');
+    const typeInput = document.getElementById('type');
+    const amountInput = document.getElementById('amount');
+    const descriptionInput = document.getElementById('description');
+    const dateInput = document.getElementById('date');
+    const searchInput = document.getElementById('search-input');
+    const listContainer = document.getElementById('transaction-list');
+    const emptyState = document.getElementById('empty-state');
+    
+    dateInput.value = new Date().toISOString().split('T')[0];
+
+    function formatMoney(num) {
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
+    }
+
+    function formatDate(dateStr) {
+        if(!dateStr) return '';
+        const [year, month, day] = dateStr.split('-');
+        return `${day}/${month}/${year}`;
+    }
+
+    function updateUI() {
+        listContainer.innerHTML = '';
+        const searchKey = searchInput.value.toLowerCase().trim();
+
+        let totalIncome = 0;
+        let totalExpense = 0;
+
+        transactions.forEach(t => {
+            if (t.type === 'income') totalIncome += t.amount;
+            else totalExpense += t.amount;
+        });
+
+        let displayedTransactions = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        if (searchKey) {
+            displayedTransactions = displayedTransactions.filter(t => 
+                t.description.toLowerCase().includes(searchKey) || 
+                formatDate(t.date).includes(searchKey)
+            );
+        }
+
+        if (displayedTransactions.length === 0) {
+            emptyState.style.display = 'block';
+        } else {
+            emptyState.style.display = 'none';
+            displayedTransactions.forEach((t) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${formatDate(t.date)}</td>
+                    <td>
+                        <span class="badge ${t.type === 'income' ? 'badge-income' : 'badge-expense'}">
+                            ${t.type === 'income' ? 'Thu' : 'Chi'}
+                        </span>
+                    </td>
+                    <td>${t.description}</td>
+                    <td class="cell-amount ${t.type === 'income' ? 'income' : 'expense'}">
+                        ${t.type === 'income' ? '+' : '-'}${formatMoney(t.amount)}
+                    </td>
+                    <td>
+                        <button class="btn-delete" onclick="deleteTransaction('${t.id}')">
+                            <ion-icon name="trash-bin-outline"></ion-icon>
+                        </button>
+                    </td>
+                `;
+                listContainer.appendChild(row);
+            });
+        }
+
+        const balance = totalIncome - totalExpense;
+        document.getElementById('total-balance').innerText = formatMoney(balance);
+        document.getElementById('total-income').innerText = formatMoney(totalIncome);
+        document.getElementById('total-expense').innerText = formatMoney(totalExpense);
+
+        localStorage.setItem('treasurer_cache_v2', JSON.stringify(transactions));
+    }
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const item = {
+            id: 'tx_' + Date.now() + Math.random().toString(36).substr(2, 4),
+            type: typeInput.value,
+            amount: parseInt(amountInput.value),
+            description: descriptionInput.value,
+            date: dateInput.value
+        };
+        transactions.push(item);
+        updateUI();
+        amountInput.value = '';
+        descriptionInput.value = '';
+    });
+
+    window.deleteTransaction = function(id) {
+        if(confirm("Bạn có chắc muốn xóa giao dịch này?")) {
+            transactions = transactions.filter(t => t.id !== id);
+            updateUI();
+        }
+    }
+
+    window.clearAllData = function() {
+        if(confirm("CẢNH BÁO: Hành động này sẽ xóa sạch toàn bộ dữ liệu. Bạn có chắc không?")) {
+            transactions = [];
+            updateUI();
+        }
+    }
+
+    window.exportToExcel = function() {
+        if(transactions.length === 0) {
+            alert("Không có dữ liệu để xuất file!");
+            return;
+        }
+        const excelData = transactions.map((t, index) => ({
+            "STT": index + 1,
+            "Ngày Tháng": formatDate(t.date),
+            "Loại Giao Dịch": t.type === 'income' ? 'Thu Vào' : 'Chi Ra',
+            "Nội Dung": t.description,
+            "Số Tiền (VND)": t.amount
+        }));
+        const worksheet = XLSX.utils.json_to_sheet(excelData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "SoThuChi");
+        XLSX.writeFile(workbook, "So_Quan_Ly_Thu_Chi.xlsx");
+    }
+
+    updateUI();
+</script>
+</body>
+</html>
